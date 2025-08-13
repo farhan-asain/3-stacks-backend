@@ -1,15 +1,43 @@
 const express = require('express');
 const axios = require('axios');
+const cors = require('cors');
 const app = express();
+
+// --- START OF CHANGES ---
+
+// Define which websites are allowed to talk to this server
+const whitelist = [
+    'http://127.0.0.1:5500', // Your local testing address
+    'http://localhost:3000',   // Another common local address
+    'https://YOUR-FINAL-WEBSITE-DOMAIN.com' // IMPORTANT: Add your live domain here later
+]; 
+const corsOptions = {
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin || whitelist.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    }
+};
+
+app.use(cors(corsOptions));
+ 
+// --- END OF CHANGES ---
+
 app.use(express.json());
 
-// IMPORTANT: PASTE YOUR SECRET SLACK WEBHOOK URL HERE
-const SLACK_WEBHOOK_URL = 'https://hooks.slack.com/services/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';
+const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL;
 
-// This is the endpoint your front-end will send orders to
 app.post('/api/place-order', async (req, res) => {
     const order = req.body;
     console.log('Received Order:', JSON.stringify(order, null, 2));
+
+    if (!SLACK_WEBHOOK_URL) {
+        console.error('Slack Webhook URL is not configured!');
+        return res.status(500).json({ message: 'Server configuration error.' });
+    }
 
     if (!order || !order.customer || !order.items || order.items.length === 0) {
         return res.status(400).json({ message: 'Invalid order data.' });
