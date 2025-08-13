@@ -34,7 +34,6 @@ app.post('/api/place-order', async (req, res) => {
 });
 
 function formatOrderForSlack(order) {
-    // Build the customer details fields dynamically
     const customerFields = [
         { "type": "mrkdwn", "text": `*Customer:*\n${order.customer.name}` },
         { "type": "mrkdwn", "text": `*Phone:*\n${order.customer.phone}` },
@@ -45,7 +44,6 @@ function formatOrderForSlack(order) {
         customerFields.push({ "type": "mrkdwn", "text": `*Landmark:*\n${order.customer.landmark}` });
     }
 
-    // Build the main message blocks
     let blocks = [
         {
             "type": "header",
@@ -58,7 +56,6 @@ function formatOrderForSlack(order) {
         { "type": "divider" }
     ];
 
-    // Add order items
     let itemsText = order.items.map(item => 
         `• *${item.quantity}x* ${item.name} - ${item.price.toFixed(2)} AED`
     ).join('\n');
@@ -68,7 +65,6 @@ function formatOrderForSlack(order) {
         "text": { "type": "mrkdwn", "text": `*Order Details:*\n${itemsText}` }
     });
 
-    // Add special instructions ONLY if they exist and are not empty
     if (order.specialInstructions && order.specialInstructions.trim() !== '') {
         blocks.push(
             { "type": "divider" },
@@ -79,7 +75,6 @@ function formatOrderForSlack(order) {
         );
     }
     
-    // Add the total price at the end
     blocks.push(
         { "type": "divider" },
         {
