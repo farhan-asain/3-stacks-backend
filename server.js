@@ -1,44 +1,39 @@
 const express = require('express');
 const axios = require('axios');
+const cors = require('cors'); // This line is crucial
 const app = express();
 
-// This allows your website (from a different domain) to send requests to this server.
-const cors = require('cors');
-app.use(cors()); 
-
+app.use(cors()); // This line is also crucial
 app.use(express.json());
 
-// IMPORTANT: PASTE YOUR SECRET SLACK WEBHOOK URL HERE
-const SLACK_WEBHOOK_URL = 'https://hooks.slack.com/services/T000...';
+// This will securely get the Slack URL you set up in Render
+const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL;
 
-// This creates the "door" for our kitchen. The website will send orders to this exact URL path.
 app.post('/api/place-order', async (req, res) => {
     const order = req.body;
     console.log('Received Order:', JSON.stringify(order, null, 2));
 
-    // Basic validation to ensure we have a valid order
+    if (!SLACK_WEBHOOK_URL) {
+        console.error('Slack Webhook URL is not configured!');
+        return res.status(500).json({ message: 'Server configuration error.' });
+    }
+
     if (!order || !order.customer || !order.items || order.items.length === 0) {
         return res.status(400).json({ message: 'Invalid order data.' });
     }
 
-    // Format the order data into a pretty Slack message
     const slackMessage = formatOrderForSlack(order);
 
     try {
-        // Use axios to send the formatted message to Slack
         await axios.post(SLACK_WEBHOOK_URL, slackMessage);
         console.log('Order sent to Slack successfully!');
-        
-        // Send a "Success" message back to the website so the customer knows it worked.
         res.status(200).json({ message: 'Order received successfully!' });
     } catch (error) {
         console.error('Error sending to Slack:', error.message);
-        // If it fails, send an error message back to the website.
         res.status(500).json({ message: 'Failed to send order notification.' });
     }
 });
 
-// This function just organizes the data to look good in Slack
 function formatOrderForSlack(order) {
     let itemsText = order.items.map(item => {
         let itemLine = `• *${item.quantity}x* ${item.name} - ${item.price.toFixed(2)} AED`;
@@ -75,7 +70,6 @@ function formatOrderForSlack(order) {
     };
 }
 
-// This tells the server to start listening for requests on a specific port.
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
