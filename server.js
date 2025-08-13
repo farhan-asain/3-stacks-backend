@@ -1,19 +1,11 @@
 const express = require('express');
 const axios = require('axios');
-const cors = require('cors'); // This line is crucial
+const cors = require('cors');
 const app = express();
 
-// --- START OF THE ONLY CHANGE ---
-
-// This tells the server to accept requests from ANY website.
-// It's the simplest way to solve the CORS error.
 app.use(cors()); 
-
-// --- END OF THE ONLY CHANGE ---
-
 app.use(express.json());
 
-// This will securely get the Slack URL you set up in Render
 const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL;
 
 app.post('/api/place-order', async (req, res) => {
@@ -43,38 +35,55 @@ app.post('/api/place-order', async (req, res) => {
 
 function formatOrderForSlack(order) {
     let itemsText = order.items.map(item => {
-        let itemLine = `• *${item.quantity}x* ${item.name} - ${item.price.toFixed(2)} AED`;
-        if (item.notes) {
-            itemLine += `\n\t :memo: _Notes: ${item.notes}_`;
-        }
-        return itemLine;
+        return `• *${item.quantity}x* ${item.name} - ${item.price.toFixed(2)} AED`;
     }).join('\n');
 
-    return {
-        blocks: [
-            {
-                "type": "header",
-                "text": { "type": "plain_text", "text": "🍔 New Order Received! 🍔" }
-            },
-            {
-                "type": "section",
-                "fields": [
-                    { "type": "mrkdwn", "text": `*Customer:*\n${order.customer.name}` },
-                    { "type": "mrkdwn", "text": `*Phone:*\n${order.customer.phone}` }
-                ]
-            },
-            { "type": "divider" },
-            {
-                "type": "section",
-                "text": { "type": "mrkdwn", "text": `*Order Details:*\n${itemsText}` }
-            },
-            { "type": "divider" },
-            {
-                "type": "section",
-                "text": { "type": "mrkdwn", "text": `*TOTAL: ${order.totalPrice.toFixed(2)} AED*` }
-            }
-        ]
-    };
+    const blocks = [
+        {
+            "type": "header",
+            "text": { "type": "plain_text", "text": "🍔 New Order Received! 🍔" }
+        },
+        {
+            "type": "section",
+            "fields": [
+                { "type": "mrkdwn", "text": `*Customer:*\n${order.customer.name}` },
+                { "type": "mrkdwn", "text": `*Phone:*\n${order.customer.phone}` }
+            ]
+        },
+        {
+            "type": "section",
+            "text": { "type": "mrkdwn", "text": `*Address:*\n:house: ${order.customer.address}` }
+        }
+    ];
+
+    if (order.customer.landmark) {
+        blocks.push({
+            "type": "section",
+            "text": { "type": "mrkdwn", "text": `*Landmark:*\n:pushpin: ${order.customer.landmark}` }
+        });
+    }
+
+    blocks.push({ "type": "divider" });
+    blocks.push({
+        "type": "section",
+        "text": { "type": "mrkdwn", "text": `*Order Details:*\n${itemsText}` }
+    });
+
+    if (order.customer.notes) {
+        blocks.push({ "type": "divider" });
+        blocks.push({
+            "type": "section",
+            "text": { "type": "mrkdwn", "text": `*Customer Notes:*\n:memo: _${order.customer.notes}_` }
+        });
+    }
+    
+    blocks.push({ "type": "divider" });
+    blocks.push({
+        "type": "section",
+        "text": { "type": "mrkdwn", "text": `*TOTAL: ${order.totalPrice.toFixed(2)} AED*` }
+    });
+
+    return { blocks };
 }
 
 const PORT = process.env.PORT || 3000;
