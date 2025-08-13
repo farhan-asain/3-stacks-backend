@@ -1,33 +1,19 @@
 const express = require('express');
 const axios = require('axios');
-const cors = require('cors');
+const cors = require('cors'); // This line is crucial
 const app = express();
 
-// --- START OF CHANGES ---
+// --- START OF THE ONLY CHANGE ---
 
-// Define which websites are allowed to talk to this server
-const whitelist = [
-    'http://127.0.0.1:5500', // Your local testing address
-    'http://localhost:3000',   // Another common local address
-    'https://YOUR-FINAL-WEBSITE-DOMAIN.com' // IMPORTANT: Add your live domain here later
-]; 
-const corsOptions = {
-    origin: function (origin, callback) {
-        // Allow requests with no origin (like mobile apps or curl requests)
-        if (!origin || whitelist.indexOf(origin) !== -1) {
-            callback(null, true);
-        } else {
-            callback(new Error('Not allowed by CORS'));
-        }
-    }
-};
+// This tells the server to accept requests from ANY website.
+// It's the simplest way to solve the CORS error.
+app.use(cors()); 
 
-app.use(cors(corsOptions));
- 
-// --- END OF CHANGES ---
+// --- END OF THE ONLY CHANGE ---
 
 app.use(express.json());
 
+// This will securely get the Slack URL you set up in Render
 const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL;
 
 app.post('/api/place-order', async (req, res) => {
