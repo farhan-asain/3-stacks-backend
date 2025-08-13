@@ -1,22 +1,15 @@
 const express = require('express');
 const axios = require('axios');
-const cors = require('cors'); // This line is crucial
 const app = express();
-
-app.use(cors()); // This line is also crucial
 app.use(express.json());
 
-// This will securely get the Slack URL you set up in Render
-const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL;
+// IMPORTANT: PASTE YOUR SECRET SLACK WEBHOOK URL HERE
+const SLACK_WEBHOOK_URL = 'https://hooks.slack.com/services/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';
 
+// This is the endpoint your front-end will send orders to
 app.post('/api/place-order', async (req, res) => {
     const order = req.body;
     console.log('Received Order:', JSON.stringify(order, null, 2));
-
-    if (!SLACK_WEBHOOK_URL) {
-        console.error('Slack Webhook URL is not configured!');
-        return res.status(500).json({ message: 'Server configuration error.' });
-    }
 
     if (!order || !order.customer || !order.items || order.items.length === 0) {
         return res.status(400).json({ message: 'Invalid order data.' });
