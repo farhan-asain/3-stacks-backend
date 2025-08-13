@@ -1,21 +1,15 @@
 const express = require('express');
 const axios = require('axios');
-const cors = require('cors');
 const app = express();
-
-app.use(cors()); 
 app.use(express.json());
 
-const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL;
+// IMPORTANT: PASTE YOUR SECRET SLACK WEBHOOK URL HERE
+const SLACK_WEBHOOK_URL = 'YOUR_SECRET_SLACK_WEBHOOK_URL_GOES_HERE';
 
+// This is the endpoint your front-end will send orders to
 app.post('/api/place-order', async (req, res) => {
     const order = req.body;
     console.log('Received Order:', JSON.stringify(order, null, 2));
-
-    if (!SLACK_WEBHOOK_URL) {
-        console.error('Slack Webhook URL is not configured on the server!');
-        return res.status(500).json({ message: 'Server configuration error.' });
-    }
 
     if (!order || !order.customer || !order.items || order.items.length === 0) {
         return res.status(400).json({ message: 'Invalid order data.' });
@@ -34,56 +28,39 @@ app.post('/api/place-order', async (req, res) => {
 });
 
 function formatOrderForSlack(order) {
-    const customerFields = [
-        { "type": "mrkdwn", "text": `*Customer:*\n${order.customer.name}` },
-        { "type": "mrkdwn", "text": `*Phone:*\n${order.customer.phone}` },
-        { "type": "mrkdwn", "text": `*Address:*\n${order.customer.address}` }
-    ];
+    let itemsText = order.items.map(item => {
+        let itemLine = `• *${item.quantity}x* ${item.name} - ${item.price.toFixed(2)} AED`;
+        if (item.notes) {
+            itemLine += `\n\t :memo: _Notes: ${item.notes}_`;
+        }
+        return itemLine;
+    }).join('\n');
 
-    if (order.customer.landmark) {
-        customerFields.push({ "type": "mrkdwn", "text": `*Landmark:*\n${order.customer.landmark}` });
-    }
-
-    let blocks = [
-        {
-            "type": "header",
-            "text": { "type": "plain_text", "text": "🍔 New Order Received! 🍔" }
-        },
-        {
-            "type": "section",
-            "fields": customerFields
-        },
-        { "type": "divider" }
-    ];
-
-    let itemsText = order.items.map(item => 
-        `• *${item.quantity}x* ${item.name} - ${item.price.toFixed(2)} AED`
-    ).join('\n');
-    
-    blocks.push({
-        "type": "section",
-        "text": { "type": "mrkdwn", "text": `*Order Details:*\n${itemsText}` }
-    });
-
-    if (order.specialInstructions && order.specialInstructions.trim() !== '') {
-        blocks.push(
+    return {
+        blocks: [
+            {
+                "type": "header",
+                "text": { "type": "plain_text", "text": "🍔 New Order Received! 🍔" }
+            },
+            {
+                "type": "section",
+                "fields": [
+                    { "type": "mrkdwn", "text": `*Customer:*\n${order.customer.name}` },
+                    { "type": "mrkdwn", "text": `*Phone:*\n${order.customer.phone}` }
+                ]
+            },
             { "type": "divider" },
             {
                 "type": "section",
-                "text": { "type": "mrkdwn", "text": `*Special Instructions:*\n> ${order.specialInstructions}` }
+                "text": { "type": "mrkdwn", "text": `*Order Details:*\n${itemsText}` }
+            },
+            { "type": "divider" },
+            {
+                "type": "section",
+                "text": { "type": "mrkdwn", "text": `*TOTAL: ${order.totalPrice.toFixed(2)} AED*` }
             }
-        );
-    }
-    
-    blocks.push(
-        { "type": "divider" },
-        {
-            "type": "section",
-            "text": { "type": "mrkdwn", "text": `*TOTAL: ${order.totalPrice.toFixed(2)} AED*` }
-        }
-    );
-
-    return { blocks };
+        ]
+    };
 }
 
 const PORT = process.env.PORT || 3000;
