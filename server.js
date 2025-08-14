@@ -41,7 +41,7 @@ function formatOrderForSlack(order) {
     const blocks = [
         {
             "type": "header",
-            "text": { "type": "plain_text", "text": "🍔 New Order Received! 🍔" }
+            "text": { "type": "plain_text", "text": "🍔 New Drive-Thru Order! 🍔" }
         },
         {
             "type": "section",
@@ -52,16 +52,9 @@ function formatOrderForSlack(order) {
         },
         {
             "type": "section",
-            "text": { "type": "mrkdwn", "text": `*Address:*\n:house: ${order.customer.address}` }
+            "text": { "type": "mrkdwn", "text": `*Car Details:*\n:car: ${order.customer.carColour} ${order.customer.carBrand} - *${order.customer.carPlate}*` }
         }
     ];
-
-    if (order.customer.landmark) {
-        blocks.push({
-            "type": "section",
-            "text": { "type": "mrkdwn", "text": `*Landmark:*\n:pushpin: ${order.customer.landmark}` }
-        });
-    }
 
     blocks.push({ "type": "divider" });
     blocks.push({
